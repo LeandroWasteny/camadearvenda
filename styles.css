@@ -505,6 +505,7 @@ ul {
 
 .hero__badge {
     display: inline-flex;
+    width: max-content;
     align-items: center;
     gap: var(--space-sm);
     padding: var(--space-sm) var(--space-lg);
@@ -518,6 +519,7 @@ ul {
     margin-bottom: var(--space-xl);
     animation: pulse-border 2s ease-in-out infinite;
     white-space: nowrap;
+    box-sizing: border-box;
 }
 
 @keyframes pulse-border {
