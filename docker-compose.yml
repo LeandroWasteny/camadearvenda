@@ -1,0 +1,11 @@
+version: '3.8'
+
+services:
+  site-borracharia:
+    build: .
+    container_name: borracharia40
+    ports:
+      - "8080:80" # Mapeia a porta 8080 do host para a porta 80 do container
+    restart: always
+    environment:
+      - TZ=America/Fortaleza # Ajuste para o fuso horário local
