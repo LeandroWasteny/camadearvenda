@@ -515,7 +515,7 @@ ul {
     color: var(--color-primary-light);
     margin-bottom: var(--space-xl);
     animation: pulse-border 2s ease-in-out infinite;
-    white-space: nowrap;
+    max-width: 100%;
 }
 
 @keyframes pulse-border {
