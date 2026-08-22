@@ -517,6 +517,7 @@ ul {
     color: var(--color-primary-light);
     margin-bottom: var(--space-xl);
     animation: pulse-border 2s ease-in-out infinite;
+    white-space: nowrap;
 }
 
 @keyframes pulse-border {
@@ -1193,7 +1194,6 @@ ul {
     width: 48px;
     object-fit: cover;
     border-radius: var(--radius-sm);
-    filter: brightness(0) invert(1);
     margin-bottom: var(--space-md);
 }
 
@@ -1349,6 +1349,10 @@ ul {
 
 /* Mobile */
 @media (max-width: 768px) {
+    .header {
+        position: absolute;
+    }
+
     .container {
         padding: 0 var(--space-lg);
     }
