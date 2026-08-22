@@ -504,10 +504,7 @@ ul {
 }
 
 .hero__badge {
-    display: inline-flex;
-    width: max-content;
-    align-items: center;
-    gap: var(--space-sm);
+    display: inline-block;
     padding: var(--space-sm) var(--space-lg);
     background: rgba(230, 30, 42, 0.1);
     border: 1px solid rgba(230, 30, 42, 0.3);
@@ -519,7 +516,6 @@ ul {
     margin-bottom: var(--space-xl);
     animation: pulse-border 2s ease-in-out infinite;
     white-space: nowrap;
-    box-sizing: border-box;
 }
 
 @keyframes pulse-border {
@@ -528,11 +524,20 @@ ul {
 }
 
 .hero__badge-dot {
+    display: inline-block;
+    vertical-align: middle;
     width: 8px;
     height: 8px;
     border-radius: 50%;
     background: var(--color-primary);
     animation: pulse-dot 1.5s ease-in-out infinite;
+    margin-right: var(--space-sm);
+    margin-bottom: 2px;
+}
+
+.hero__badge span:last-child {
+    display: inline-block;
+    vertical-align: middle;
 }
 
 @keyframes pulse-dot {
