@@ -534,6 +534,12 @@ ul {
     flex-shrink: 0;
 }
 
+.hero__badge span:last-child {
+    display: inline-block;
+    transform: translateY(1px);
+    line-height: 1;
+}
+
 @keyframes pulse-dot {
     0%, 100% { opacity: 1; transform: scale(1); }
     50% { opacity: 0.5; transform: scale(1.5); }
