@@ -13,7 +13,8 @@
         site: 'cama-ar-90-90-18',      // identifica qual dos dois sites gerou o lead
         ga4: '',                  // ID do Google Analytics 4. Ex: 'G-ABC123DEF4'
         adsId: '',                // ID do Google Ads. Ex: 'AW-123456789'
-        adsLabel: ''              // Rotulo da conversao. Ex: 'aBcDeFgHiJ'
+        adsLabel: '',             // Rotulo da conversao. Ex: 'aBcDeFgHiJ'
+        codigoNaMensagem: false   // true acrescenta um "(ref XXXX)" no fim da mensagem
     };
 
     const DIAS_DE_MEMORIA = 90;
@@ -38,6 +39,7 @@
 
     function detectarOrigem() {
         const gclid = paramLimpo('gclid') || paramLimpo('gbraid') || paramLimpo('wbraid');
+        const fbclid = paramLimpo('fbclid');
         const utmSource = paramLimpo('utm_source');
         const utmMedium = paramLimpo('utm_medium');
         const utmCampaign = paramLimpo('utm_campaign');
@@ -47,6 +49,8 @@
         let canal;
         if (gclid || utmSource === 'google' && utmMedium === 'cpc') {
             canal = 'google-ads';
+        } else if (fbclid || /^(facebook|fb|instagram|ig)$/.test(utmSource) && /cpc|paid|ads?/.test(utmMedium)) {
+            canal = /instagram|ig/.test(utmSource) ? 'instagram-ads' : 'facebook-ads';
         } else if (utmSource) {
             canal = utmSource.toLowerCase();
         } else if (document.referrer) {
@@ -71,18 +75,18 @@
 
         return {
             canal: canal,
-            campanha: utmCampaign || (gclid ? 'google-ads' : ''),
+            campanha: utmCampaign || (gclid ? 'google-ads' : '') || (fbclid ? 'facebook-ads' : ''),
             anuncio: utmContent || '',
             termo: utmTerm || '',
             gclid: gclid || '',
+            fbclid: fbclid || '',
             pagina: window.location.pathname,
             data: new Date().toISOString().slice(0, 10)
         };
     }
 
-    // Guarda a ultima origem real por 90 dias: se a pessoa veio do anuncio e
-    // depois volta digitando o link, o credito continua sendo do anuncio.
-    // Se ela voltar por outro caminho identificavel, esse passa a valer.
+    // Primeiro toque manda: se a pessoa ja visitou vinda do anuncio e volta
+    // depois direto, o credito continua sendo do anuncio.
     function origemPersistida() {
         const agora = detectarOrigem();
         const salvoBruto = ler(CHAVE);
@@ -118,6 +122,8 @@
 
     const NOMES = {
         'google-ads': 'Google Ads (anuncio pago)',
+        'facebook-ads': 'Facebook Ads (anuncio pago)',
+        'instagram-ads': 'Instagram Ads (anuncio pago)',
         'google-organico': 'Busca do Google',
         'instagram': 'Instagram',
         'facebook': 'Facebook',
@@ -129,12 +135,44 @@
         return NOMES[ORIGEM.canal] || ORIGEM.canal;
     }
 
-    // --- Etiqueta anexada a mensagem do WhatsApp ---
-    function montarEtiqueta() {
-        const partes = [nomeDoCanal()];
-        if (ORIGEM.campanha && ORIGEM.campanha !== 'google-ads') partes.push(ORIGEM.campanha);
-        partes.push(DISPOSITIVO);
-        return '\n\n---\nVim de: ' + partes.join(' - ') + ' | Cod. ' + CODIGO;
+    // --- Redacao da mensagem conforme o canal ---
+    // Em vez de carimbar a origem na frente do cliente, cada canal abre a
+    // mensagem de um jeito. Quem le a conversa reconhece a origem na primeira
+    // linha, e para o cliente e so uma frase normal.
+    const ABERTURAS = {
+        'google-ads': 'vi o an\u00fancio de voc\u00eas',
+        'facebook-ads': 'vim pelo Facebook',
+        'instagram-ads': 'vim pelo Instagram',
+        'facebook': 'vim pelo Facebook',
+        'instagram': 'vim pelo Instagram',
+        'google-organico': 'achei voc\u00eas no Google',
+        'whatsapp': 'me indicaram voc\u00eas',
+        'direto': 'vim pelo site'
+    };
+
+    function aberturaDoCanal() {
+        return ABERTURAS[ORIGEM.canal] || 'vim pelo site';
+    }
+
+    function personalizarMensagem(texto) {
+        const abertura = aberturaDoCanal();
+        let saida;
+
+        if (texto.indexOf('Vim pelo site') !== -1) {
+            // Caso comum: a propria frase do site vira a frase do canal.
+            saida = texto.replace('Vim pelo site', abertura.charAt(0).toUpperCase() + abertura.slice(1));
+        } else {
+            const saudacao = texto.match(/^(Ol\u00e1!|Ola!|Oi!)\s*/);
+            if (saudacao) {
+                saida = saudacao[0].trim() + ' ' + abertura.charAt(0).toUpperCase() + abertura.slice(1) + '. '
+                      + texto.slice(saudacao[0].length);
+            } else {
+                saida = abertura.charAt(0).toUpperCase() + abertura.slice(1) + '. ' + texto;
+            }
+        }
+
+        if (CONFIG.codigoNaMensagem) saida += ' (ref ' + CODIGO + ')';
+        return saida;
     }
 
     // --- Onde da pagina a pessoa clicou ---
@@ -199,8 +237,6 @@
 
     // --- Marca todos os links de WhatsApp da pagina ---
     function marcarLinksWhatsApp() {
-        const etiqueta = montarEtiqueta();
-
         document.querySelectorAll('a[href*="wa.me"], a[href*="api.whatsapp.com"]').forEach(function (a) {
             if (a.dataset.b40) return;
             a.dataset.b40 = '1';
@@ -208,11 +244,10 @@
 
             try {
                 const url = new URL(a.href);
-                const texto = url.searchParams.get('text') || 'Ola! Vim pelo site da Borracharia 40.';
-                if (texto.indexOf('Vim de:') === -1) {
-                    url.searchParams.set('text', texto + etiqueta);
-                    a.href = url.toString();
-                }
+                const texto = url.searchParams.get('text')
+                    || 'Ol\u00e1! Vim pelo site e gostaria de falar com a Borracharia 40.';
+                url.searchParams.set('text', personalizarMensagem(texto));
+                a.href = url.toString();
             } catch (e) { /* link malformado: mantem como esta */ }
 
             a.addEventListener('click', function () {
